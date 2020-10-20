@@ -18,8 +18,29 @@ class Function():
 
 		return self.delete_on == 0
 
+special_times = {
+	'@hourly' : '0 * * * *',
+	'@daily' : '0 0 * * *',
+	'@weekly' : '0 0 * * 0',
+	'@monthly' : '0 0 1 * *',
+	'@yearly' : '0 0 1 1 *',
+	'@annually' : '0 0 1 1 *',
+	'@midnight' : '0 0 * * *',
+
+}
+
 class Scheduler():
 	def __init__(self, user=None, loop=None, auto_start=True):
+		"""
+		Initializes the scheduler.
+		This includes a asyncio socket server running on localhost.
+
+		arguments:
+			- user : str; default: linux's user running the script;
+				This argument determines which user's crontab it will be executed onto
+			- loop : default : asyncio's loop; In case a different loop is desired to be used instead.
+			- auto_start : default : True; Automatically starts the loop on which it will be run.
+		"""
 		if user is None:
 			user = os.getenv("USER")
 
@@ -38,13 +59,32 @@ class Scheduler():
 			self.loop.create_task(self.run())
 
 	def add_task(self, time, func, *args, task_name=None, delete_on=float('inf'), **kwargs):
+		"""
+		This method adds the function to the execution list.
+		
+		arguments:
+			- time : str; Crontab's syntax is used and parsed to. If invalid, a KeyError is raised.
+			- func : function; The function to be executed once the crontab calls.
+			- task_name : str; default : function name;
+				Alternative name for the task. If there is a task with such name already,
+				a KeyError is raised
+			- delete_on : int; default : infinite; How many times the task is supposed to be executed.
+			- *args : are parsed to the function as arguments.
+			- **kwargs : are parsed to the function as karguments.
+		"""
 		if task_name is None:
 			task_name = func.__name__
+
+		if task_name in self.tasks:
+			raise KeyError("Task already scheduled")
 
 		job = self.cron.new(
 			command=f'python3 {self.file} --crontab --port {self.port} --function {task_name}',
 			comment=f'{self.file}:{func.__name__}'
 		)
+
+		if time in special_times:
+			time = special_times[time]
 
 		for n, field in enumerate(time.split(" ")):
 			job.slices[n].parse(field)
@@ -73,7 +113,6 @@ class Scheduler():
 					server.listen(8)
 					server.setblocking(False)
 					self.port = port
-					print(port)
 					self._server = server
 					return server
 				except OSError:
@@ -82,6 +121,9 @@ class Scheduler():
 		return self._server
 
 	def cleanup(self):
+		"""
+		Removes the tasks from crontab and object as well as closing the socket server
+		"""
 		for task in list(self.tasks.keys())[:]:
 			self.remove(task)
 		self._server.close()
