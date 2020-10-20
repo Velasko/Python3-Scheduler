@@ -33,7 +33,7 @@ def func(arg):
 	print("do stuff here")
 	print(arg)
 
-s.add_task(time="*/5 * * * *", func, arg='argument to print')
+sched.add_task(time="*/5 * * * *", func, arg='argument to print')
 ```
 
 Then, running the asyncio loop should be enough to get it working and executing the task executing on the background.
@@ -41,6 +41,6 @@ Then, running the asyncio loop should be enough to get it working and executing 
 
 **Important things to keep in mind:**
 
-* When the exection is about to end, it's best to run `s.cleanup()` in order to clear the crontab from the scheduler's tasks. I'm yet to implement a way to remove older tasks that could've been left, as a suddent shutdown might happen.
+* When the exection is about to end, it's best to run `sched.cleanup()` in order to clear the crontab from the scheduler's tasks. I'm yet to implement a way to remove older tasks that could've been left, as a suddent shutdown might happen.
 
 * Even though the idea is to fully support crontab's time syntax, `@reboot` doesn't makes much sense, as tasks should be deleted once the script is finished.
