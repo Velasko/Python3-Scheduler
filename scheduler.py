@@ -12,9 +12,9 @@ class Function():
 		self.kwargs = kwargs
 		self.job = job #never used by this object, but relevant to keep track
 
-	def __call__(self):
+	async def __call__(self):
 		self.delete_on -= 1
-		self.func(*self.args, **self.kwargs)
+		await self.func(*self.args, **self.kwargs)
 
 		return self.delete_on == 0
 
@@ -58,8 +58,8 @@ class Scheduler():
 		self.cron.write()
 		del self.tasks[task]
 
-	def run_task(self, task):
-		if self.tasks[task](): #executing data
+	async def run_task(self, task):
+		if await self.tasks[task](): #executing data
 			self.remove(task)
 
 	def get_server(self):
@@ -91,16 +91,23 @@ class Scheduler():
 		client.close()
 
 		try:
-			self.run_task(request)
-		except KeyError:
-			pass
+			await self.run_task(request)
+		except TypeError as e:
+			#this means the function finished execution and only then
+			#noticed it's not async
+			if "can't be used in 'await' expression" in e.args[0]:
+				pass	
+			else:
+				raise e
+		except KeyError as e:
+			print(e)
 
-	async def _run(self):
+	async def run(self):
 		client, _ = await self.loop.sock_accept(self.get_server())
 		self.loop.create_task(self.handle_client(client))
 
-def test():
-	print('test function executed. You may ^C')
+async def test():
+	print('test function triggered by crontab. You may ^C')
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
@@ -126,7 +133,8 @@ if __name__ == '__main__':
 		loop = asyncio.get_event_loop()
 		try:
 			loop.run_forever()
+		except KeyboardInterrupt:
+			pass
 		finally:
 			s.cleanup()
-			print(s.tasks)
-			print('finished finally')
+			print('\nfinished finally; tasks cleaned up.')
