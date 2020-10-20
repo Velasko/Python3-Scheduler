@@ -43,4 +43,4 @@ Then, running the asyncio loop should be enough to get it working and executing 
 
 * When the exection is about to end, it's best to run `s.cleanup()` in order to clear the crontab from the scheduler's tasks. I'm yet to implement a way to remove older tasks that could've been left, as a suddent shutdown might happen.
 
-* Even though the idea is to fully support crontab's time syntax, `@reboot` doesn't makes much sense, as it should be deleted once the script is finished.
+* Even though the idea is to fully support crontab's time syntax, `@reboot` doesn't makes much sense, as tasks should be deleted once the script is finished.
