@@ -45,12 +45,16 @@ class Scheduler():
 			user = os.getenv("USER")
 
 		self.cron = crontab.CronTab(user=user)
-		self.file = os.path.dirname(os.path.realpath(__file__)) + "/" + __file__
+		self.file = __file__ if "/" in __file__ else os.path.dirname(os.path.realpath(__file__)) + "/" + __file__
 		self.tasks = {}
 
 		self._server = None
 		self.port = None
 		self.get_server()
+
+		#removing crontabs that might have stayed (happens with a suddent shutdown,)
+		self.cron.remove_all(comment=f'{self.file}')
+		self.cron.write()
 
 		if loop is None:
 			self.loop = asyncio.get_event_loop()
@@ -80,7 +84,7 @@ class Scheduler():
 
 		job = self.cron.new(
 			command=f'python3 {self.file} --crontab --port {self.port} --function {task_name}',
-			comment=f'{self.file}:{func.__name__}'
+			comment=f'{self.file}' #used to delete at restart
 		)
 
 		if time in special_times:
